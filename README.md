@@ -1,8 +1,14 @@
 # workflow-migrator
 
-Convert workflow definitions from Netflix Conductor (and other orchestration platforms) to AWS Step Functions Amazon States Language (ASL).
+[![License: MIT-0](https://img.shields.io/badge/License-MIT--0-green.svg)](LICENSE)
+[![Node.js 20+](https://img.shields.io/badge/Node.js-20%2B-blue.svg)](https://nodejs.org/)
+[![Tests](https://img.shields.io/badge/Tests-106%20passing-brightgreen.svg)](#-development)
+[![Coverage](https://img.shields.io/badge/Coverage-87%25-brightgreen.svg)](#-development)
+[![AWS Step Functions](https://img.shields.io/badge/AWS-Step%20Functions-orange.svg)](https://aws.amazon.com/step-functions/)
 
-## Overview
+Convert workflow definitions from Netflix Conductor and Camunda BPM to AWS Step Functions Amazon States Language (ASL).
+
+## 🔍 The Problem
 
 Enterprise organizations migrating from self-hosted workflow orchestration platforms to AWS Step Functions face a manual, error-prone translation process. This CLI tool automates the structural conversion of workflow definitions, mapping platform-specific constructs to their ASL equivalents.
 
@@ -18,15 +24,15 @@ Enterprise organizations migrating from self-hosted workflow orchestration platf
 - Deploy infrastructure (output is ASL JSON; deploy with CDK/SAM/CloudFormation)
 - Handle in-flight executions (complete running workflows before cutover)
 
-## Supported Platforms
+## 🎯 Supported Platforms
 
 | Platform | Status | Input Format | Output |
 |---|---|---|---|
 | Netflix Conductor | ✅ Supported | JSON DSL | ASL JSON |
-| Camunda BPM | 🔜 Coming soon | BPMN 2.0 XML | ASL JSON |
+| Camunda BPM | ✅ Supported | BPMN 2.0 XML | ASL JSON |
 | Temporal | 🔜 Planned | — | ASL JSON |
 
-## Installation
+## 📦 Installation
 
 ```bash
 # Install globally
@@ -41,7 +47,7 @@ npx workflow-migrator convert --from conductor --input workflow.json
 - Node.js 20.x or later
 - npm 9.x or later
 
-## Usage
+## 🚀 Usage
 
 ### Convert a Conductor workflow to Step Functions ASL
 
@@ -71,7 +77,7 @@ workflow-migrator validate --input workflow.json
 workflow-migrator supported
 ```
 
-## Construct Mapping
+## 🗺️ Construct Mapping
 
 ### Conductor → Step Functions
 
@@ -93,7 +99,7 @@ workflow-migrator supported
 | `${workflow.input.field}` | `$.field` |
 | `${taskRef.output.response.body.field}` | `$.taskRef.field` |
 
-## Architecture
+## 🏗️ Architecture
 
 ```
 src/
@@ -117,7 +123,7 @@ src/
 - **Singleton** — Logger instance shared across modules
 - **Error Hierarchy** — Typed errors with codes for programmatic handling
 
-## Error Handling
+## ⚠️ Error Handling
 
 The tool uses structured error codes and exit codes:
 
@@ -130,7 +136,7 @@ The tool uses structured error codes and exit codes:
 | 4 | Resource limit exceeded | FILE_TOO_LARGE |
 | 99 | Unexpected error | — |
 
-## Security
+## 🔒 Security
 
 - **Input validation:** File size checked before reading (max 10MB) to prevent memory exhaustion
 - **No network access:** Tool operates entirely offline on local files
@@ -138,19 +144,19 @@ The tool uses structured error codes and exit codes:
 - **Generated ARNs use placeholders:** Output contains `${AWS::Region}` and `${AWS::AccountId}` — never real account IDs
 - **Least privilege in generated ASL:** Each Task state targets a specific Lambda function ARN, not wildcards
 
-## Performance
+## ⚡ Performance
 
 - **Time complexity:** O(n) where n = total tasks (including nested branches)
 - **Space complexity:** O(n) for the generated state machine
 - **Input limits:** Max 10MB file size, max 500 tasks per workflow
 - **No external dependencies at runtime:** Only `commander` for CLI parsing
 
-## Development
+## 🧪 Development
 
 ```bash
 # Clone and install
-git clone git@ssh.code.aws.dev:personal_projects/alias_m/mopyle/workflow-migrator.git
-cd workflow-migrator
+git clone https://github.com/aws-samples/sample-workflow-migrator-conductor-to-step-functions.git
+cd sample-workflow-migrator-conductor-to-step-functions
 npm install
 
 # Build
@@ -166,7 +172,7 @@ npm test
 npm run lint
 ```
 
-## Contributing
+## 🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/camunda-support`)
@@ -183,7 +189,7 @@ npm run lint
 4. Register the platform in `src/utils/constants.ts` (`SUPPORTED_PLATFORMS`)
 5. Add the CLI routing in `src/index.ts`
 
-## Changelog
+## 📋 Changelog
 
 ### 0.1.0 (2026-05-18)
 
@@ -195,13 +201,21 @@ npm run lint
 - Input validation with size limits and structural checks
 - Custom error hierarchy with exit codes
 
-## Related Resources
+## 📚 Related Resources
 
 - [Migrating from Netflix Conductor to AWS Step Functions](https://aws.amazon.com/blogs/migration-and-modernization/) — Comprehensive migration guide
 - [AWS Step Functions Documentation](https://docs.aws.amazon.com/step-functions/latest/dg/)
 - [Amazon States Language Specification](https://states-language.net/spec.html)
 - [Netflix Conductor Documentation](https://conductor-oss.github.io/conductor/)
 
-## License
+## 📄 License
 
-MIT
+This library is licensed under the MIT-0 License. See the [LICENSE](LICENSE) file.
+
+## Security
+
+See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for more information.
+
+## Disclaimer
+
+Sample code, software libraries, command line tools, proofs of concept, templates, or other related technology are provided as AWS Content or Third-Party Content under the AWS Customer Agreement, or the relevant written agreement between you and AWS (whichever applies). You should not use this AWS Content or Third-Party Content in your production accounts, or on production or other critical data. You are responsible for testing, securing, and optimizing the AWS Content or Third-Party Content, such as sample code, as appropriate for production grade use based on your specific quality control practices and standards. Deploying AWS Content or Third-Party Content may incur AWS charges for creating or using AWS chargeable resources, such as running Amazon EC2 instances or using Amazon S3 storage.
