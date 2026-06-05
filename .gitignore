@@ -30,3 +30,4 @@ tmp/
 
 # Generated output (users generate these locally)
 *.asl.json
+.kiro/
