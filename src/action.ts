@@ -1,7 +1,9 @@
 import * as core from '@actions/core';
 import * as fs from 'fs';
 import { convertConductorToASL } from './mappers/conductor-to-asl';
+import { convertCamundaToASL } from './mappers/camunda-to-asl';
 import { parseConductorWorkflow } from './parsers/conductor';
+import { parseCamundaWorkflow } from './parsers/camunda';
 
 async function run(): Promise<void> {
   try {
@@ -16,14 +18,25 @@ async function run(): Promise<void> {
 
     core.info(`Converting ${source} (${format}) -> ${target} (ASL)`);
 
-    if (format !== 'conductor') {
-      core.setFailed(`Format '${format}' is not yet supported. Currently supported: conductor. Coming soon: camunda, airflow, temporal.`);
-      return;
+    const sourceContent = fs.readFileSync(source, 'utf-8');
+    let result;
+
+    switch (format) {
+      case 'conductor': {
+        const workflow = parseConductorWorkflow(sourceContent);
+        result = convertConductorToASL(workflow);
+        break;
+      }
+      case 'camunda': {
+        const process = parseCamundaWorkflow(sourceContent);
+        result = convertCamundaToASL(process);
+        break;
+      }
+      default:
+        core.setFailed(`Format '${format}' is not yet supported. Supported: conductor, camunda. Coming soon: airflow, temporal.`);
+        return;
     }
 
-    const sourceContent = fs.readFileSync(source, 'utf-8');
-    const workflow = parseConductorWorkflow(sourceContent);
-    const result = convertConductorToASL(workflow);
     const aslJson = JSON.stringify(result.stateMachine, null, 2);
 
     // Write output file
