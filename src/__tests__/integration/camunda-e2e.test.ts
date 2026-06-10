@@ -11,7 +11,7 @@ beforeAll(() => logger.setLevel(LogLevel.SILENT));
  * These tests verify the full pipeline from BPMN XML parsing to ASL generation.
  */
 describe('Camunda end-to-end integration', () => {
-  const BPMN_FILE = path.resolve(__dirname, '../../../../camunda-reference/media-processing.bpmn');
+  const BPMN_FILE = path.resolve(__dirname, './fixtures/media-processing.bpmn');
 
   let result: ReturnType<typeof convertCamundaToASL>;
 

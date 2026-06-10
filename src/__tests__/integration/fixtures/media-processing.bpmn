@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:camunda="http://camunda.org/schema/1.0/bpmn"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  id="Definitions_MediaProcessing"
+                  targetNamespace="http://bpmn.io/schema/bpmn"
+                  exporter="Camunda Modeler"
+                  exporterVersion="5.20.0">
+
+  <bpmn:process id="Process_MediaProcessing" name="Media Processing Workflow" isExecutable="true">
+
+    <!-- Start Event -->
+    <bpmn:startEvent id="StartEvent_MediaUploaded" name="Media File Uploaded">
+      <bpmn:outgoing>Flow_ToExtract</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <!-- Service Task: Extract Media Info -->
+    <bpmn:serviceTask id="Task_ExtractMediaInfo" name="Extract Media Info"
+                      camunda:type="external" camunda:topic="extract-media-info">
+      <bpmn:incoming>Flow_ToExtract</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToGateway</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- Error Boundary Event on Extract Media Info -->
+    <bpmn:boundaryEvent id="BoundaryEvent_ExtractError" name="Extraction Failed"
+                        attachedToRef="Task_ExtractMediaInfo">
+      <bpmn:errorEventDefinition id="ErrorDef_ExtractFailed" errorRef="Error_ExtractionFailed" />
+      <bpmn:outgoing>Flow_ExtractErrorToHandler</bpmn:outgoing>
+    </bpmn:boundaryEvent>
+
+    <!-- Timer Boundary Event on Extract Media Info (timeout) -->
+    <bpmn:boundaryEvent id="BoundaryEvent_ExtractTimeout" name="Extraction Timeout"
+                        cancelActivity="true" attachedToRef="Task_ExtractMediaInfo">
+      <bpmn:timerEventDefinition id="TimerDef_ExtractTimeout">
+        <bpmn:timeDuration>PT2M</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+      <bpmn:outgoing>Flow_TimeoutToHandler</bpmn:outgoing>
+    </bpmn:boundaryEvent>
+
+    <!-- Exclusive Gateway: Media Type Decision -->
+    <bpmn:exclusiveGateway id="Gateway_MediaType" name="Video or Audio?">
+      <bpmn:incoming>Flow_ToGateway</bpmn:incoming>
+      <bpmn:outgoing>Flow_Video</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Audio</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Unsupported</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- Service Task: Transcode Video -->
+    <bpmn:serviceTask id="Task_TranscodeVideo" name="Transcode Video"
+                      camunda:type="external" camunda:topic="transcode-video">
+      <bpmn:incoming>Flow_Video</bpmn:incoming>
+      <bpmn:outgoing>Flow_VideoToEnd</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- Error Boundary Event on Transcode Video -->
+    <bpmn:boundaryEvent id="BoundaryEvent_VideoError" name="Transcode Video Failed"
+                        attachedToRef="Task_TranscodeVideo">
+      <bpmn:errorEventDefinition id="ErrorDef_VideoFailed" errorRef="Error_TranscodeFailed" />
+      <bpmn:outgoing>Flow_VideoErrorToHandler</bpmn:outgoing>
+    </bpmn:boundaryEvent>
+
+    <!-- Service Task: Transcode Audio -->
+    <bpmn:serviceTask id="Task_TranscodeAudio" name="Transcode Audio"
+                      camunda:type="external" camunda:topic="transcode-audio">
+      <bpmn:incoming>Flow_Audio</bpmn:incoming>
+      <bpmn:outgoing>Flow_AudioToEnd</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- Error Boundary Event on Transcode Audio -->
+    <bpmn:boundaryEvent id="BoundaryEvent_AudioError" name="Transcode Audio Failed"
+                        attachedToRef="Task_TranscodeAudio">
+      <bpmn:errorEventDefinition id="ErrorDef_AudioFailed" errorRef="Error_TranscodeFailed" />
+      <bpmn:outgoing>Flow_AudioErrorToHandler</bpmn:outgoing>
+    </bpmn:boundaryEvent>
+
+    <!-- Service Task: Handle Unsupported Media -->
+    <bpmn:serviceTask id="Task_HandleUnsupported" name="Handle Unsupported Media"
+                      camunda:type="external" camunda:topic="handle-unsupported">
+      <bpmn:incoming>Flow_Unsupported</bpmn:incoming>
+      <bpmn:outgoing>Flow_UnsupportedToErrorEnd</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- Service Task: Handle Error -->
+    <bpmn:serviceTask id="Task_HandleError" name="Handle Error"
+                      camunda:type="external" camunda:topic="handle-error">
+      <bpmn:incoming>Flow_ExtractErrorToHandler</bpmn:incoming>
+      <bpmn:incoming>Flow_TimeoutToHandler</bpmn:incoming>
+      <bpmn:incoming>Flow_VideoErrorToHandler</bpmn:incoming>
+      <bpmn:incoming>Flow_AudioErrorToHandler</bpmn:incoming>
+      <bpmn:outgoing>Flow_ErrorToEnd</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- End Event: Success -->
+    <bpmn:endEvent id="EndEvent_Success" name="Processing Complete">
+      <bpmn:incoming>Flow_VideoToEnd</bpmn:incoming>
+      <bpmn:incoming>Flow_AudioToEnd</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- End Event: Error -->
+    <bpmn:endEvent id="EndEvent_Error" name="Processing Failed">
+      <bpmn:incoming>Flow_ErrorToEnd</bpmn:incoming>
+      <bpmn:incoming>Flow_UnsupportedToErrorEnd</bpmn:incoming>
+      <bpmn:errorEventDefinition id="ErrorEndDef" errorRef="Error_ProcessingFailed" />
+    </bpmn:endEvent>
+
+    <!-- Sequence Flows -->
+    <bpmn:sequenceFlow id="Flow_ToExtract" sourceRef="StartEvent_MediaUploaded" targetRef="Task_ExtractMediaInfo" />
+    <bpmn:sequenceFlow id="Flow_ToGateway" sourceRef="Task_ExtractMediaInfo" targetRef="Gateway_MediaType" />
+
+    <bpmn:sequenceFlow id="Flow_Video" name="video" sourceRef="Gateway_MediaType" targetRef="Task_TranscodeVideo">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${mediaType == 'video'}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+
+    <bpmn:sequenceFlow id="Flow_Audio" name="audio" sourceRef="Gateway_MediaType" targetRef="Task_TranscodeAudio">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${mediaType == 'audio'}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+
+    <bpmn:sequenceFlow id="Flow_Unsupported" name="unsupported" sourceRef="Gateway_MediaType" targetRef="Task_HandleUnsupported">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${mediaType != 'video' &amp;&amp; mediaType != 'audio'}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+
+    <bpmn:sequenceFlow id="Flow_VideoToEnd" sourceRef="Task_TranscodeVideo" targetRef="EndEvent_Success" />
+    <bpmn:sequenceFlow id="Flow_AudioToEnd" sourceRef="Task_TranscodeAudio" targetRef="EndEvent_Success" />
+    <bpmn:sequenceFlow id="Flow_UnsupportedToErrorEnd" sourceRef="Task_HandleUnsupported" targetRef="EndEvent_Error" />
+
+    <bpmn:sequenceFlow id="Flow_ExtractErrorToHandler" sourceRef="BoundaryEvent_ExtractError" targetRef="Task_HandleError" />
+    <bpmn:sequenceFlow id="Flow_TimeoutToHandler" sourceRef="BoundaryEvent_ExtractTimeout" targetRef="Task_HandleError" />
+    <bpmn:sequenceFlow id="Flow_VideoErrorToHandler" sourceRef="BoundaryEvent_VideoError" targetRef="Task_HandleError" />
+    <bpmn:sequenceFlow id="Flow_AudioErrorToHandler" sourceRef="BoundaryEvent_AudioError" targetRef="Task_HandleError" />
+    <bpmn:sequenceFlow id="Flow_ErrorToEnd" sourceRef="Task_HandleError" targetRef="EndEvent_Error" />
+
+  </bpmn:process>
+
+  <!-- Error Definitions -->
+  <bpmn:error id="Error_ExtractionFailed" name="Extraction Failed" errorCode="EXTRACTION_FAILED" />
+  <bpmn:error id="Error_TranscodeFailed" name="Transcode Failed" errorCode="TRANSCODE_FAILED" />
+  <bpmn:error id="Error_ProcessingFailed" name="Processing Failed" errorCode="PROCESSING_FAILED" />
+
+</bpmn:definitions>
