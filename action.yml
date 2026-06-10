@@ -1,0 +1,39 @@
+name: 'Workflow Migrator to Step Functions'
+description: 'Convert workflow definitions from Netflix Conductor, Camunda BPMN, and other platforms to AWS Step Functions ASL'
+author: 'Morris Pyle'
+
+branding:
+  icon: 'refresh-cw'
+  color: 'orange'
+
+inputs:
+  source:
+    description: 'Path to the source workflow definition file'
+    required: true
+  target:
+    description: 'Path for the output ASL JSON file'
+    required: true
+  format:
+    description: 'Source format: conductor (default), camunda (coming soon), airflow (coming soon)'
+    required: false
+    default: 'conductor'
+  validate:
+    description: 'Validate the output ASL JSON structure'
+    required: false
+    default: 'true'
+  fail-on-warnings:
+    description: 'Fail the action if conversion produces warnings'
+    required: false
+    default: 'false'
+
+outputs:
+  asl-file:
+    description: 'Path to the generated ASL JSON file'
+  states-count:
+    description: 'Number of states in the generated state machine'
+  warnings:
+    description: 'Any conversion warnings (constructs requiring manual review)'
+
+runs:
+  using: 'node20'
+  main: 'dist/action.js'
